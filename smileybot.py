@@ -2,10 +2,9 @@ import euphoria
 import contextlib
 import urllib.error
 import urllib.request
-import custom_room
 
 
-class SmileyBot(euphoria.ping_room.PingRoom, custom_room.CustomRoom):
+class SmileyBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom):
     def __init__(self, room, passcode=None):
         super().__init__(room, passcode)
         self.nickname = 'Smileys'
@@ -15,20 +14,23 @@ class SmileyBot(euphoria.ping_room.PingRoom, custom_room.CustomRoom):
         self.ping_text = 'Pong!'
         self.short_help_text = 'Bot for creating custom "smiley" image macros.'
         self.help_text = ('Smileys is a bot created by @SillyLyn in Python using EuPy (https://github.com/jedevc/EuPy)'
-                          '\n\nUse the following command to add new smilies:\n!add <name> <image>\nImages must be '
-                          'DIRECT LINKS to Imgur images.\n\nFor a list of available smilies, use the following command:'
-                          '\n!list @Smilies\n\nSpecial thanks to @blahdom for being awesome <3')
+                          '\n\nUse the following command to add new smileys:\n!add <name> <image>\nImages must be '
+                          'DIRECT LINKS to Imgur images.\n\nFor a list of available smileys, use the following command:'
+                          '\n!list @Smileys\n\nSpecial thanks to @blahdom for being awesome <3')
 
     def handle_chat(self, m):
+        if m['content'].startswith('!add'):
+            try:
+                cmd, name, url = m['content'].split(' ')
+            except ValueError:
+                self.send_chat('Error: Bad syntax.\nUsage: !add <name> <URL>', m['id'])
+            else:
+                self.add_smiley(name.lower(), url, parent=m['id'])
+        elif m['content'] == '!list @Smileys':
+            self.send_list(m['id'])
+        else:
             with contextlib.suppress(KeyError):
                 self.send_chat(self.list[m['content'].lower()], m['id'])
-            if m['content'].split()[0] == '!add':
-                if len(m['content'].split()) == 3:
-                    self.add_smiley(m['content'].lower().split()[1], m['content'].split()[2], parent=m['id'])
-                else:
-                    self.send_chat('Error: Bad syntax.\nUsage: !add <name> <URL>', m['id'])
-            if m['content'] == '!list @Smileys':
-                self.send_list(m['id'])
 
     def create_list(self):
         with open('list.txt', 'r') as smileylist:
@@ -44,37 +46,46 @@ class SmileyBot(euphoria.ping_room.PingRoom, custom_room.CustomRoom):
 
     def add_smiley(self, command, filename, parent=None):
         if not command[0] == '!':
-            command = '!'+command
+            command = '!' + command
         if command not in self.list:
-            if 'i.imgur.com' in filename:
-                if filename.startswith('"') or filename.startswith("'"):
-                    filename = filename[1:-1]
-                if not filename.startswith('http://') and not filename.startswith('https://'):
-                    filename = 'http://' + filename
-                try:
-                    if urllib.request.urlopen(filename).info().get_content_type().startswith('image'):
-                        with open('list.txt', 'a') as smileylist:
-                            smileylist.write('\n' + command + ' ' + filename)
-                        self.create_list()
-                        self.send_chat('New smiley "' + command + '" added.', parent)
+            if command not in ('!', '!list', '!add', '!help', '!ping', '!uptime', '!pause', '!restore', '!restart',
+                               '!kill'):
+                if command[1:].isalnum():
+                    if 'i.imgur.com' in filename:
+                        if filename.startswith('"') or filename.startswith("'"):
+                            filename = filename[1:-1]
+                        if not filename.startswith('http://') and not filename.startswith('https://'):
+                            filename = 'http://' + filename
+                        try:
+                            if urllib.request.urlopen(filename).info().get_content_type().startswith('image'):
+                                with open('list.txt', 'a') as smileylist:
+                                    smileylist.write('\n' + command + ' ' + filename)
+                                self.create_list()
+                                self.send_chat('New smiley "' + command + '" added.', parent)
+                            else:
+                                self.send_chat(('Error: Link provided is not an image. Please make sure you are using'
+                                                'a valid i.imgur.com direct link and try again.'), parent)
+                        except urllib.error.HTTPError:
+                            self.send_chat(('Error: Bad link. Please make sure you are using a valid i.imgur.com direct'
+                                            ' link and try again.'), parent)
+                        except urllib.error.URLError:
+                            self.send_chat('Error: Invalid URL. Please check that the URL is correct.', parent)
                     else:
-                        self.send_chat(('Error: Link provided is not an image. Please make sure you are using'
-                                        'a valid i.imgur.com direct link and try again.'),parent)
-                except urllib.error.HTTPError:
-                    self.send_chat(('Error: Bad link. Please make sure you are using a valid i.imgur.com direct link '
-                                    'and try again.'), parent)
-                except urllib.error.URLError:
-                    self.send_chat('Error: Invalid URL. Please check that the URL is correct.', parent)
+                        self.send_chat('Error: Only direct links to i.imgur.com are permitted.', parent)
+                else:
+                    self.send_chat(('Error: Numbers and special characters may not be used in names. Please choose a '
+                                    'different name.'), parent)
             else:
-                self.send_chat('Error: Only direct links to i.imgur.com are permitted.', parent)
+                self.send_chat('Error: Name prohibited. Please choose a different name.', parent)
         else:
             self.send_chat('Error: Name already in use. Please choose a different name.', parent)
 
 
 def main():
-    bot = SmileyBot("test")
+    bot = SmileyBot('test')
     while bot.isAlive:
         euphoria.executable.start(bot)
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     main()
