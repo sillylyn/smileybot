@@ -29,6 +29,8 @@ class SmileyBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom
                 self.add_smiley(name.lower(), url, parent=m['id'])
         elif m['content'].startswith('!remove'):
             try:
+                host = m['sender']['is_manager']
+            try:
                 cmd, name = m['content'].split(' ')
             except ValueError:
                 self.send_chat('Error: Bad syntax.\nUsage: !remove <name>', m['id'])

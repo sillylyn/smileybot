@@ -9,7 +9,7 @@ class StandardRoom(chat_room.ChatRoom):
     def __init__(self, roomname, password=None, attempts=None):
         super().__init__(roomname, password, attempts)
 
-        self.ping_text = "Pong!"
+        self.ping_text = 'Pong!'
         self.short_help_text = None
         self.help_text = None
 
@@ -17,12 +17,12 @@ class StandardRoom(chat_room.ChatRoom):
         self.isAlive = True
 
     def handle_message(self, data):
-        content = data["data"]["content"]
-        reply = data["data"]["id"]
+        content = data['data']['content']
+        reply = data['data']['id']
         host = False
 
         with contextlib.suppress(KeyError):
-            host = data["data"]["sender"]["is_manager"]
+            host = data['data']['sender']['is_manager']
 
         if self.isPaused:
             if content == '!restore @' + self.nickname():
@@ -32,23 +32,23 @@ class StandardRoom(chat_room.ChatRoom):
                 self.send_chat('/me has been restored.', reply)
 
         if not self.isPaused:
-            if content == "!ping":
+            if content == '!ping':
                 self.send_chat(self.ping_text, reply)
-            elif content == "!ping @" + self.nickname:
+            elif content == '!ping @' + self.nickname:
                 self.send_chat(self.ping_text, reply)
 
-            elif content == "!help":
+            elif content == '!help':
                 if self.short_help_text is not None:
                     self.send_chat(self.short_help_text, reply)
-            elif content == "!help @" + self.nickname:
+            elif content == '!help @' + self.nickname:
                 if self.help_text is not None:
                     self.send_chat(self.help_text, reply)
 
-            elif content == "!uptime @" + self.nickname:
-                u = datetime.datetime.strftime(self.start_utc, "%Y-%m-%d %H:%M:%S")
+            elif content == '!uptime @' + self.nickname:
+                u = datetime.datetime.strftime(self.start_utc, '%Y-%m-%d %H:%M:%S')
                 t = utils.extract_time(self.uptime())
 
-                self.send_chat("/me has been up since " + u + " UTC (" + t + ")", reply)
+                self.send_chat('/me has been up since ' + u + ' UTC (' + t + ')', reply)
 
             elif content == '!pause @' + self.nickname:
                 self.isPaused = True
