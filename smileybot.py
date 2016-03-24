@@ -42,6 +42,8 @@ class SmileyBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom
                 self.send_chat('Error: "!remove" is a host-only command.', m['id'])
         elif m['content'] == '!list @' + self.nickname:
             self.send_list(m['id'])
+        elif (m['content'] == '!sophie') and m['sender']['name'].startswith('eve'): #PRANK - REMOVE LATER
+            pass
         else:
             with contextlib.suppress(KeyError):
                 self.send_chat(self.list[m['content'].lower()], m['id'])
