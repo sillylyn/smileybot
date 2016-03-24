@@ -2,6 +2,7 @@ from . import chat_room
 from . import utils
 import time
 import datetime
+import contextlib
 
 
 class StandardRoom(chat_room.ChatRoom):
@@ -18,9 +19,13 @@ class StandardRoom(chat_room.ChatRoom):
     def handle_message(self, data):
         content = data["data"]["content"]
         reply = data["data"]["id"]
+        host = False
+
+        with contextlib.suppress(KeyError):
+            host = data["data"]["sender"]["is_manager"]
 
         if self.isPaused:
-            if content == '!restore @Smileys':
+            if content == '!restore @' + self.nickname():
                 self.isPaused = False
                 self.start_utc = datetime.datetime.utcnow()
                 self.start_time = time.time()
@@ -45,15 +50,15 @@ class StandardRoom(chat_room.ChatRoom):
 
                 self.send_chat("/me has been up since " + u + " UTC (" + t + ")", reply)
 
-            elif content == '!pause @Smileys':
+            elif content == '!pause @' + self.nickname:
                 self.isPaused = True
                 self.send_chat('/me has been paused.', reply)
 
-            elif content == '!restart @Smileys':
+            elif content == '!restart @' + self.nickname:
                 self.send_chat('/me is now restarting.', reply)
                 self.quit()
 
-            elif content == '!kill @Smileys':
+            elif (content == '!kill @' + self.nickname) and host:
                 self.send_chat('/me is now exiting. RIP in peace.', reply)
                 self.isAlive = False
                 self.quit()
