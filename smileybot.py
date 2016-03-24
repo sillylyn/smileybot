@@ -72,7 +72,7 @@ class SmileyBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom
         if command in ('!', '!list', '!add', '!help', '!ping', '!uptime', '!pause', '!restore', '!restart', '!kill'):
             self.send_chat('Error: Name prohibited. Please choose a different name.', parent)
             return
-        if command[1:].isalnum():
+        if not command[1:].isalnum():
             self.send_chat(('Error: Numbers and special characters may not be used in names. Please choose a '
                             'different name.'), parent)
             return
