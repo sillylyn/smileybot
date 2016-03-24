@@ -58,10 +58,13 @@ class StandardRoom(chat_room.ChatRoom):
                 self.send_chat('/me is now restarting.', reply)
                 self.quit()
 
-            elif (content == '!kill @' + self.nickname) and host:
-                self.send_chat('/me is now exiting. RIP in peace.', reply)
-                self.isAlive = False
-                self.quit()
+            elif (content == '!kill @' + self.nickname):
+                if host:
+                    self.send_chat('/me is now exiting. RIP in peace.', reply)
+                    self.isAlive = False
+                    self.quit()
+                else:
+                    self.send_chat('Error: "!kill" is a host-only command.')
 
             else:
                 super().handle_message(data)

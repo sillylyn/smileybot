@@ -28,14 +28,16 @@ class SmileyBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom
             else:
                 self.add_smiley(name.lower(), url, parent=m['id'])
         elif m['content'].startswith('!remove'):
-            try:
-                host = m['sender']['is_manager']
-            try:
-                cmd, name = m['content'].split(' ')
-            except ValueError:
-                self.send_chat('Error: Bad syntax.\nUsage: !remove <name>', m['id'])
-            else:
-                self.remove_smiley(name, m['id'])
+            with contextlib.suppress(KeyError):
+                if m['sender']['is_manager']:
+                    try:
+                        cmd, name = m['content'].split(' ')
+                    except ValueError:
+                        self.send_chat('Error: Bad syntax.\nUsage: !remove <name>', m['id'])
+                    else:
+                        self.remove_smiley(name, m['id'])
+                else:
+                    self.send_chat('Error: "!remove" is a host-only command.')
         elif m['content'] == '!list @' + self.nickname:
             self.send_list(m['id'])
         else:
