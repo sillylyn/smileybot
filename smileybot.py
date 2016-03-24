@@ -7,7 +7,7 @@ import urllib.request
 class SmileyBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom):
     def __init__(self, room, passcode=None):
         super().__init__(room, passcode)
-        self.nickname = 'lyntestbot'
+        self.nickname = 'Smileys'
         self.list = {}
         self.open_list()
 
@@ -113,7 +113,7 @@ class SmileyBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom
             self.send_chat('Smiley "' + command + '" removed.', parent)
 
 
-def main(room = 'test'):
+def main(room = 'srs'):
     bot = SmileyBot(room)
     while bot.isAlive:
         euphoria.executable.start(bot)
