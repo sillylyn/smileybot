@@ -64,7 +64,7 @@ class StandardRoom(chat_room.ChatRoom):
                     self.isAlive = False
                     self.quit()
                 else:
-                    self.send_chat('Error: "!kill" is a host-only command.')
+                    self.send_chat('Error: "!kill" is a host-only command.', reply)
 
             else:
                 super().handle_message(data)
