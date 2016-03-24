@@ -7,9 +7,9 @@ import urllib.request
 class SmileyBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom):
     def __init__(self, room, passcode=None):
         super().__init__(room, passcode)
-        self.nickname = 'Smileys'
+        self.nickname = 'lyntestbot'
         self.list = {}
-        self.create_list()
+        self.open_list()
 
         self.ping_text = 'Pong!'
         self.short_help_text = 'Bot for creating custom "smiley" image macros.'
@@ -23,20 +23,35 @@ class SmileyBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom
             try:
                 cmd, name, url = m['content'].split(' ')
             except ValueError:
+                self.send_chat('~bad syntax puppies~ https://i.imgur.com/ieajOG4.jpg')
                 self.send_chat('Error: Bad syntax.\nUsage: !add <name> <URL>', m['id'])
             else:
                 self.add_smiley(name.lower(), url, parent=m['id'])
-        elif m['content'] == '!list @Smileys':
+        elif m['content'].startswith('!remove'):
+            try:
+                cmd, name = m['content'].split(' ')
+            except ValueError:
+                self.send_chat('Error: Bad syntax.\nUsage: !remove <name>', m['id'])
+            else:
+                self.remove_smiley(name, m['id'])
+        elif m['content'] == '!list @' + self.nickname:
             self.send_list(m['id'])
         else:
             with contextlib.suppress(KeyError):
                 self.send_chat(self.list[m['content'].lower()], m['id'])
 
-    def create_list(self):
+    def open_list(self):
         with open('list.txt', 'r') as smileylist:
             for line in smileylist:
                 if len(line.split()) == 2:
                     self.list[line.split()[0]] = line.split()[1].rstrip('\n')
+
+    def write_list(self):
+        output = ''
+        for key in self.list:
+            output = output + key + ' ' + self.list[key] + '\n'
+        with open('list.txt', 'w') as smileylist:
+            smileylist.write(output)
 
     def send_list(self, parent=None):
         msg = ''
@@ -78,17 +93,28 @@ class SmileyBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom
             self.send_chat('Error: Invalid URL. Please check that the URL is correct.', parent)
         else:
             if valid_link:
+                self.list[command] = filename
                 with open('list.txt', 'a') as smileylist:
                     smileylist.write('\n' + command + ' ' + filename)
-                    self.create_list()
-                    self.send_chat('New smiley "' + command + '" added.', parent)
+                self.send_chat('New smiley "' + command + '" added.', parent)
             else:
                 self.send_chat(('Error: Link provided is not an image. Please make sure you are using'
                                 'a valid i.imgur.com direct link and try again.'), parent)
 
+    def remove_smiley(self, command, parent=None):
+        if not command[0] == '!':
+            command = '!' + command
+        try:
+            del self.list[command]
+        except KeyError:
+            self.send_chat('Error: Smiley name not in list. Please check that the name is correct.', parent)
+        else:
+            self.write_list()
+            self.send_chat('Smiley "' + command + '" removed.', parent)
 
-def main():
-    bot = SmileyBot('test')
+
+def main(room = 'test'):
+    bot = SmileyBot(room)
     while bot.isAlive:
         euphoria.executable.start(bot)
 
