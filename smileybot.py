@@ -2,6 +2,7 @@ import euphoria
 import contextlib
 import urllib.error
 import urllib.request
+import random
 
 
 class SmileyBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom):
@@ -44,6 +45,8 @@ class SmileyBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom
             self.send_list(m['id'])
         elif (m['content'] == '!me_irl') or (m['content'] == '!meirl'):
             self.me_irl(m['sender']['name'], m['id'])
+        elif m['content'] == '!random':
+            self.random_smiley(m['id'])
         else:
             with contextlib.suppress(KeyError):
                 self.send_chat(self.list[m['content'].casefold()], m['id'])
@@ -131,6 +134,9 @@ class SmileyBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom
             with contextlib.suppress(KeyError):
                 self.send_chat(self.list['!'+''.join(string.casefold().split())], parent)
                 break
+
+    def random_smiley(self, parent):
+        self.send_chat(self.list[list(self.list)[random.randint(0,len(list(self.list))-1)]], parent)
 
 
 def main(room = 'test'):
