@@ -68,6 +68,8 @@ class SmileyBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom
         self.send_chat('List of available smileys:\n' + msg[:-2], parent)
 
     def add_smiley(self, key, filename, parent=None):
+        if key.startswith('"') or key.startswith("<"):
+            key = key[1:-1]
         if not key[0] == '!':
             key = '!' + key
         #  verify some error conditions and reply to user
@@ -78,7 +80,7 @@ class SmileyBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom
             self.send_chat('Error: Only direct links to i.imgur.com are permitted.', parent)
             return
         if key in ('!', '!list', '!add', '!help', '!ping', '!uptime', '!pause', '!restore', '!restart', '!kill',
-                       '!comic', '!remove', '!me_irl', '!meirl'):
+                       '!comic', '!remove', '!me_irl', '!meirl', '!discussion', '!conversation'):
             self.send_chat('Error: Name prohibited. Please choose a different name.', parent)
             return
         if not key[1:].isalnum():
@@ -87,7 +89,7 @@ class SmileyBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom
             return
 
         # sanitize the filename if necessary
-        if filename.startswith('"') or filename.startswith("'"):
+        if filename.startswith('"') or filename.startswith("<"):
             filename = filename[1:-1]
         if not filename.startswith('http://') and not filename.startswith('https://'):
             filename = 'http://' + filename
