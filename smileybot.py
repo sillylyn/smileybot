@@ -3,6 +3,7 @@ import contextlib
 import urllib.error, urllib.request
 import random
 import json
+import datetime
 
 
 class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom):
@@ -21,16 +22,14 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
     def handle_chat(self, m):
         if m['content'].startswith('!add '):
             try:
-                cmd, name, url = m['content'].split()
+                cmd, key, url = m['content'].split()
             except ValueError:
                 self.send_chat('~bad syntax puppies~ https://i.imgur.com/ieajOG4.jpg', m['id'])
                 self.send_chat('Error: Bad syntax.\nUsage: !add <name> <URL>', m['id'])
             else:
-                self.add_smiley(name.casefold(), url, parent=m['id'])
+                self.add_smiley(key.casefold(), url, m['sender']['name'], parent=m['id'])
         elif m['content'].startswith('!remove '):
-            host = False
-            with contextlib.suppress(KeyError):
-                host = m['sender']['is_manager']
+            host = m['sender'].get('is_manager', False)
             if host:
                 try:
                     cmd, name = m['content'].split()
@@ -49,6 +48,8 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
                 self.send_chat('Error: Bad syntax.\nUsage: !info <name>', m['id'])
             else:
                 self.send_info(name, m['id'])
+        elif m['content'] == '!top @' + self.nickname:
+            self.top_smileys(m['id'])
         elif (m['content'] == '!me_irl') or (m['content'] == '!meirl'):
             self.me_irl(m['sender']['name'], m['id'])
         elif m['content'] == '!random':
@@ -82,14 +83,13 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
         if not key[0] == '!':
             key = '!' + key
         try:
-            message = 'Info for smiley "' + key + '"'
-            message = message + '\nUsage Count: ' + self.list[key]['count']
+            self.send_chat('Info for smiley "' + key + '":\nImgur URL: "' + self.list[key]['url'] + '"\nUsage count: ' +
+                           self.list[key]['count'] + '\nAdded by: ' + self.list[key].get('user','') +
+                           '\nTime added (UTC): ' + self.list[key].get('date',''), parent)
         except KeyError:
             self.send_chat('Error: Error: Smiley name not in list. Please check that the name is correct.', parent)
-        else:
-            self.send_chat(message, parent)
 
-    def add_smiley(self, key, filename, parent=None):
+    def add_smiley(self, key, filename, user, parent=None):
         if key.startswith('"') or key.startswith('<'):
             key = key[1:-1]
         if not key[0] == '!':
@@ -128,7 +128,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
             self.send_chat('Error: Invalid URL. Please check that the URL is correct.', parent)
         else:
             if valid_link:
-                self.list[key] = {'url':filename, 'count': '0'}
+                self.list[key] = {'url':filename, 'count': '0', 'user': user, 'date': str(datetime.datetime.utcnow())}
                 self.write_list()
                 self.send_chat('New smiley "' + key + '" added.', parent)
             else:
@@ -157,6 +157,17 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
 
     def random_smiley(self, parent):
         self.send_chat(self.list[list(self.list)[random.randint(0,len(list(self.list))-1)]]['url'], parent)
+
+    def top_smileys(self, parent):
+        toplist = []
+        for key in self.list:
+            toplist.append((int(self.list[key]['count']), key))
+        toplist.sort()
+        message = 'Top 10 Smileys:'
+        for number in range(1,11):
+            message = message + '\n' + str(number) + '. ' + toplist[-number][1] + ' (' + str(toplist[-number][0]) + ')'
+        self.send_chat(message, parent)
+        print(toplist)
 
 
 def main(room = 'test'):
