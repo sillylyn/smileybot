@@ -3,14 +3,20 @@ import contextlib
 import urllib.error, urllib.request
 import random
 import json
-import datetime
-
+import time, datetime
 
 class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom):
     def __init__(self, room, passcode=None):
         super().__init__(room, passcode)
         self.nickname = 'SmileBot'
+
+        self.times = []
+        self.logging_max = 5
+        self.cooldown = 120
+
         self.open_list()
+
+
         self.ping_text = 'Pong!'
         self.short_help_text = 'Bot for creating custom "smiley" image macros.'
         self.help_text = ('SmileBot (formerly Smileys) is a bot created by @SillyLyn in Python using EuPy '
@@ -66,10 +72,18 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
             json.dump(self.list, imagelist)
 
     def send_smiley(self, key, parent=None):
-        with contextlib.suppress(KeyError):
-            self.send_chat(self.list[key]['url'], parent)
-            self.list[key]['count'] = str(int(self.list[key]['count']) + 1)
-            self.write_list()
+        while len(self.times) > self.logging_max:
+            del self.times[0]
+        if len(self.times) == self.logging_max and time.time() - self.times[0] < self.cooldown:
+            self.send_chat('Error: Cooldown limit reached. Please wait about ' +
+                           str(round((self.cooldown - (time.time() - self.times[0]))/60, 1)) +
+                           ' minutes, then try again.', parent)
+        else:
+            with contextlib.suppress(KeyError):
+                self.send_chat(self.list[key]['url'], parent)
+                self.times.append(time.time())
+                self.list[key]['count'] = str(int(self.list[key]['count']) + 1)
+                self.write_list()
 
     def send_list(self, parent=None):
         msg = ''
@@ -102,7 +116,8 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
             self.send_chat('Error: Only direct links to i.imgur.com are permitted.', parent)
             return
         if key in ('!', '!list', '!add', '!help', '!ping', '!uptime', '!pause', '!restore', '!restart', '!kill',
-                       '!comic', '!remove', '!me_irl', '!meirl', '!discussion', '!conversation', '!random'):
+                   '!comic', '!remove', '!me_irl', '!meirl', '!discussion', '!conversation', '!random', '!info',
+                   '!top'):
             self.send_chat('Error: Name prohibited. Please choose a different name.', parent)
             return
         if not key[1:].isalnum():
@@ -152,11 +167,16 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
         key = sender.split(':')
         for string in key:
             with contextlib.suppress(KeyError):
-                self.send_chat(self.list['!'+''.join(string.casefold().split())]['url'], parent)
+                self.send_chat(self.list['!' + ''.join(string.casefold().split())]['url'], parent)
+                self.list['!' + ''.join(string.casefold().split())]['count'] = str(int(self.list[key]['count']) + 1)
+                self.write_list()
                 break
 
     def random_smiley(self, parent):
-        self.send_chat(self.list[list(self.list)[random.randint(0,len(list(self.list))-1)]]['url'], parent)
+        r = random.randint(0, len(list(self.list))-1)
+        self.send_chat(self.list[list(self.list)[r]]['url'], parent)
+        self.list[list(self.list)[r]]['count'] = str(int(self.list[key]['count']) + 1)
+        self.write_list()
 
     def top_smileys(self, parent):
         toplist = []
@@ -170,7 +190,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
         print(toplist)
 
 
-def main(room = 'test'):
+def main(room = 'srs'):
     bot = SmileBot(room)
     while bot.isAlive:
         euphoria.executable.start(bot)
