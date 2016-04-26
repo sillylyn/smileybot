@@ -189,7 +189,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
         else:
             r = random.randint(0, len(list(self.list))-1)
             self.send_chat(self.list[list(self.list)[r]]['url'], parent)
-            self.list[list(self.list)[r]]['count'] = str(int(self.list[key]['count']) + 1)
+            self.list[list(self.list)[r]]['count'] = str(int(self.list[list(self.list)[r]]['count']) + 1)
             self.write_list()
 
     def top_smileys(self, parent):
