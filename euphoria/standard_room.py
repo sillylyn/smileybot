@@ -19,13 +19,13 @@ class StandardRoom(chat_room.ChatRoom):
     def handle_message(self, data):
         content = data['data']['content']
         reply = data['data']['id']
-        host = False
+
 
         with contextlib.suppress(KeyError):
             host = data['data']['sender']['is_manager']
 
         if self.isPaused:
-            if content == '!restore @' + self.nickname():
+            if content == '!restore @' + self.nickname:
                 self.isPaused = False
                 self.start_utc = datetime.datetime.utcnow()
                 self.start_time = time.time()
