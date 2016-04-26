@@ -171,11 +171,12 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
                            str(round((self.cooldown - (time.time() - self.times[0]))/60, 1)) +
                            ' minutes, then try again.', parent)
         else:
-            key = sender.split(':')
-            for string in key:
+            name = sender.split(':')
+            for string in name:
                 with contextlib.suppress(KeyError):
-                    self.send_chat(self.list['!' + ''.join(string.casefold().split())]['url'], parent)
-                    self.list['!' + ''.join(string.casefold().split())]['count'] = str(int(self.list[key]['count']) + 1)
+                    key = '!' + ''.join(string.casefold().split())
+                    self.send_chat(self.list[key]['url'], parent)
+                    self.list[key]['count'] = str(int(self.list[key]['count']) + 1)
                     self.write_list()
                     break
 
