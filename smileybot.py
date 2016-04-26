@@ -101,7 +101,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
                            self.list[key]['count'] + '\nAdded by: ' + self.list[key].get('user','') +
                            '\nTime added (UTC): ' + self.list[key].get('date',''), parent)
         except KeyError:
-            self.send_chat('Error: Error: Smiley name not in list. Please check that the name is correct.', parent)
+            self.send_chat('Error: Smiley name not in list. Please check that the name is correct.', parent)
 
     def add_smiley(self, key, filename, user, parent=None):
         if key.startswith('"') or key.startswith('<'):
@@ -189,7 +189,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
                            ' minutes, then try again.', parent)
         else:
             r = random.randint(0, len(list(self.list))-1)
-            self.send_chat(self.list[list(self.list)[r]]['url'], parent)
+            self.send_chat(list(self.list)[r] + self.list[list(self.list)[r]]['url'], parent)
             self.list[list(self.list)[r]]['count'] = str(int(self.list[list(self.list)[r]]['count']) + 1)
             self.write_list()
 
