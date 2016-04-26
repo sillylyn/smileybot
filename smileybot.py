@@ -5,55 +5,51 @@ import random
 import json
 import time, datetime
 
+
 class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom):
     def __init__(self, room, passcode=None):
         super().__init__(room, passcode)
         self.nickname = 'SmileBot'
 
         self.times = []
-        self.logging_max = 5
+        self.log = 5
         self.cooldown = 120
 
         self.open_list()
 
-
         self.ping_text = 'Pong!'
         self.short_help_text = 'Bot for creating custom "smiley" image macros.'
-        self.help_text = ('SmileBot (formerly Smileys) is a bot created by @SillyLyn in Python using EuPy '
+        self.help_text = (self.nickname + '(formerly Smileys) is a bot created by @SillyLyn in Python using EuPy '
                           '(https://github.com/jedevc/EuPy)\n\nUse the following command to add new smileys:\n!add '
-                          '<name> <image>\nImages must be DIRECT LINKS to Imgur images.\n\nFor a list of available '
-                          'smileys, use the following command:\n!list @Smileys\n\nSpecial thanks to @blahdom for being '
-                          'awesome <3')
+                          '<name> <image>\nImages must be DIRECT LINKS to Imgur images.\n\nThe following commands '
+                          'are also available:\n!list @' + self.nickname + '\n!top @' + self.nickname + '\n!info <name>'
+                          '\n!me_irl\n!random\n\nSpecial thanks to @Alexis for being awesome <3')
 
     def handle_chat(self, m):
-        if m['content'].startswith('!add '):
-            try:
-                cmd, key, url = m['content'].split()
-            except ValueError:
+        message = euphoria.command.Command(m['content'])
+        message.parse()
+        if message.command == 'add':
+            if not len(message.args) == 2:
                 self.send_chat('~bad syntax puppies~ https://i.imgur.com/ieajOG4.jpg', m['id'])
                 self.send_chat('Error: Bad syntax.\nUsage: !add <name> <URL>', m['id'])
             else:
-                self.add_smiley(key.casefold(), url, m['sender']['name'], parent=m['id'])
-        elif m['content'].startswith('!remove '):
+                self.add_smiley(message.args[0].casefold(), message.args[1], m['sender']['name'], parent=m['id'])
+        elif message.command == 'remove':
             host = m['sender'].get('is_manager', False)
             if host:
-                try:
-                    cmd, name = m['content'].split()
-                except ValueError:
+                if not len(message.args) == 1:
                     self.send_chat('Error: Bad syntax.\nUsage: !remove <name>', m['id'])
                 else:
-                    self.remove_smiley(name, m['id'])
+                    self.remove_smiley(message.args[0].casefold(), m['id'])
             else:
                 self.send_chat('Error: "!remove" is a host-only command.', m['id'])
         elif m['content'] == '!list @' + self.nickname:
             self.send_list(m['id'])
-        elif m['content'].startswith('!info '):
-            try:
-                cmd, name = m['content'].split()
-            except ValueError:
+        elif message.command == 'info':
+            if not len(message.args) == 1:
                 self.send_chat('Error: Bad syntax.\nUsage: !info <name>', m['id'])
             else:
-                self.send_info(name, m['id'])
+                self.send_info(message.args[0].casefold(), m['id'])
         elif m['content'] == '!top @' + self.nickname:
             self.top_smileys(m['id'])
         elif (m['content'] == '!me_irl') or (m['content'] == '!meirl'):
@@ -71,19 +67,26 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
         with open('list.json', 'w') as imagelist:
             json.dump(self.list, imagelist)
 
-    def send_smiley(self, key, parent=None):
-        while len(self.times) > self.logging_max:
+    def limit(self, parent):
+        while len(self.times) > self.log:
             del self.times[0]
-        if key in self.list and len(self.times) == self.logging_max and time.time() - self.times[0] < self.cooldown:
+        if len(self.times) == self.log and time.time() - self.times[0] < self.cooldown:
             self.send_chat('Error: Cooldown limit reached. Please wait about ' +
                            str(round((self.cooldown - (time.time() - self.times[0]))/60, 1)) +
                            ' minutes, then try again.', parent)
+            return False
         else:
-            with contextlib.suppress(KeyError):
-                self.send_chat(self.list[key]['url'], parent)
-                self.times.append(time.time())
-                self.list[key]['count'] = str(int(self.list[key]['count']) + 1)
-                self.write_list()
+            return True
+
+    def record_data(self, key):
+        self.times.append(time.time())
+        self.list[key]['count'] = str(int(self.list[key]['count']) + 1)
+        self.write_list()
+
+    def send_smiley(self, key, parent=None):
+        if key in self.list and self.limit(parent):
+            self.send_chat(self.list[key]['url'], parent)
+            self.record_data(key)
 
     def send_list(self, parent=None):
         msg = ''
@@ -126,12 +129,11 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
             return
 
         # sanitize the filename if necessary
+        filename = filename.split('?')[0]
         if filename.startswith('"') or filename.startswith("<"):
             filename = filename[1:-1]
         if not filename.startswith('http://') and not filename.startswith('https://'):
             filename = 'http://' + filename
-        if filename.endswith('?1'):
-            filename = filename[:-2]
 
         # Check url is accessible
         try:
@@ -164,48 +166,33 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
             self.send_chat('Smiley "' + key + '" removed.', parent)
 
     def me_irl(self, sender, parent=None):
-        while len(self.times) > self.logging_max:
-            del self.times[0]
-        if len(self.times) == self.logging_max and time.time() - self.times[0] < self.cooldown:
-            self.send_chat('Error: Cooldown limit reached. Please wait about ' +
-                           str(round((self.cooldown - (time.time() - self.times[0]))/60, 1)) +
-                           ' minutes, then try again.', parent)
-        else:
+        if self.limit(parent):
             name = sender.split(':')
             for string in name:
                 with contextlib.suppress(KeyError):
                     key = '!' + ''.join(string.casefold().split())
                     self.send_chat(self.list[key]['url'], parent)
-                    self.list[key]['count'] = str(int(self.list[key]['count']) + 1)
-                    self.write_list()
+                    self.record_data(key)
                     break
 
     def random_smiley(self, parent):
-        while len(self.times) > self.logging_max:
-            del self.times[0]
-        if len(self.times) == self.logging_max and time.time() - self.times[0] < self.cooldown:
-            self.send_chat('Error: Cooldown limit reached. Please wait about ' +
-                           str(round((self.cooldown - (time.time() - self.times[0]))/60, 1)) +
-                           ' minutes, then try again.', parent)
-        else:
+        if self.limit(parent):
             r = random.randint(0, len(list(self.list))-1)
             self.send_chat(list(self.list)[r] + self.list[list(self.list)[r]]['url'], parent)
-            self.list[list(self.list)[r]]['count'] = str(int(self.list[list(self.list)[r]]['count']) + 1)
-            self.write_list()
+            self.record_data(list(self.list)[r])
 
     def top_smileys(self, parent):
-        toplist = []
+        top = []
         for key in self.list:
-            toplist.append((int(self.list[key]['count']), key))
-        toplist.sort()
+            top.append((int(self.list[key]['count']), key))
+        top.sort()
         message = 'Top 10 Smileys:'
         for number in range(1,11):
-            message = message + '\n' + str(number) + '. ' + toplist[-number][1] + ' (' + str(toplist[-number][0]) + ')'
+            message = message + '\n' + str(number) + '. ' + top[-number][1] + ' (' + str(top[-number][0]) + ')'
         self.send_chat(message, parent)
-        print(toplist)
 
 
-def main(room = 'srs'):
+def main(room='srs'):
     bot = SmileBot(room)
     while bot.isAlive:
         euphoria.executable.start(bot)
