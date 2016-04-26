@@ -74,7 +74,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
     def send_smiley(self, key, parent=None):
         while len(self.times) > self.logging_max:
             del self.times[0]
-        if len(self.times) == self.logging_max and time.time() - self.times[0] < self.cooldown:
+        if key in self.list and len(self.times) == self.logging_max and time.time() - self.times[0] < self.cooldown:
             self.send_chat('Error: Cooldown limit reached. Please wait about ' +
                            str(round((self.cooldown - (time.time() - self.times[0]))/60, 1)) +
                            ' minutes, then try again.', parent)
@@ -164,19 +164,33 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
             self.send_chat('Smiley "' + key + '" removed.', parent)
 
     def me_irl(self, sender, parent=None):
-        key = sender.split(':')
-        for string in key:
-            with contextlib.suppress(KeyError):
-                self.send_chat(self.list['!' + ''.join(string.casefold().split())]['url'], parent)
-                self.list['!' + ''.join(string.casefold().split())]['count'] = str(int(self.list[key]['count']) + 1)
-                self.write_list()
-                break
+        while len(self.times) > self.logging_max:
+            del self.times[0]
+        if len(self.times) == self.logging_max and time.time() - self.times[0] < self.cooldown:
+            self.send_chat('Error: Cooldown limit reached. Please wait about ' +
+                           str(round((self.cooldown - (time.time() - self.times[0]))/60, 1)) +
+                           ' minutes, then try again.', parent)
+        else:
+            key = sender.split(':')
+            for string in key:
+                with contextlib.suppress(KeyError):
+                    self.send_chat(self.list['!' + ''.join(string.casefold().split())]['url'], parent)
+                    self.list['!' + ''.join(string.casefold().split())]['count'] = str(int(self.list[key]['count']) + 1)
+                    self.write_list()
+                    break
 
     def random_smiley(self, parent):
-        r = random.randint(0, len(list(self.list))-1)
-        self.send_chat(self.list[list(self.list)[r]]['url'], parent)
-        self.list[list(self.list)[r]]['count'] = str(int(self.list[key]['count']) + 1)
-        self.write_list()
+        while len(self.times) > self.logging_max:
+            del self.times[0]
+        if len(self.times) == self.logging_max and time.time() - self.times[0] < self.cooldown:
+            self.send_chat('Error: Cooldown limit reached. Please wait about ' +
+                           str(round((self.cooldown - (time.time() - self.times[0]))/60, 1)) +
+                           ' minutes, then try again.', parent)
+        else:
+            r = random.randint(0, len(list(self.list))-1)
+            self.send_chat(self.list[list(self.list)[r]]['url'], parent)
+            self.list[list(self.list)[r]]['count'] = str(int(self.list[key]['count']) + 1)
+            self.write_list()
 
     def top_smileys(self, parent):
         toplist = []
