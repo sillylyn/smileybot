@@ -174,12 +174,12 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
             while (not sender.count(':') == 0) and sender.count(':') % 2 == 0:
                 sender = sender.partition(':')[0] + sender.partition(':')[2].partition(':')[2]
 
-            key = ''
+            key = '!'
             for character in sender:
                 if character.isalnum() or character == '_':
-                    name = key + character
+                    key = key + character
             key.casefold()
-
+            print(key)
             with contextlib.suppress(KeyError):
                 self.send_chat(self.list[key]['url'], parent)
                 self.record_data(key)
