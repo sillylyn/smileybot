@@ -178,10 +178,9 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
             for character in sender:
                 if character.isalnum() or character == '_':
                     key = key + character
-            key.casefold()
-            print(key)
+                    
             with contextlib.suppress(KeyError):
-                self.send_chat(self.list[key]['url'], parent)
+                self.send_chat(self.list[key.casefold()]['url'], parent)
                 self.record_data(key)
 
     def random_smiley(self, parent):
@@ -201,7 +200,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
         self.send_chat(message, parent)
 
 
-def main(room='srs'):
+def main(room='test'):
     bot = SmileBot(room)
     while bot.isAlive:
         euphoria.executable.start(bot)
