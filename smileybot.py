@@ -111,6 +111,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
             key = key[1:-1]
         if not key[0] == '!':
             key = '!' + key
+
         #  verify some error conditions and reply to user
         if key in self.list:
             self.send_chat('Error: Name already in use. Please choose a different name.', parent)
@@ -123,10 +124,11 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
                    '!top'):
             self.send_chat('Error: Name prohibited. Please choose a different name.', parent)
             return
-        if not key[1:].isalnum():
-            self.send_chat(('Error: Numbers and special characters may not be used in names. Please choose a '
-                            'different name.'), parent)
-            return
+        for character in key[1:]:
+            if not (character.isalnum() or character == '_'):
+                self.send_chat(('Error: Numbers and special characters may not be used in names. Please choose a '
+                'different name.'), parent)
+                return
 
         # sanitize the filename if necessary
         filename = filename.split('?')[0]
@@ -167,13 +169,20 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
 
     def me_irl(self, sender, parent=None):
         if self.limit(parent):
-            name = sender.split(':')
-            for string in name:
-                with contextlib.suppress(KeyError):
-                    key = '!' + ''.join(string.casefold().split())
-                    self.send_chat(self.list[key]['url'], parent)
-                    self.record_data(key)
-                    break
+            if sender.count(':') == 2 and sender[0] == ':' and sender[-1] == ':':
+                sender = sender[1:-1]
+            while (not sender.count(':') == 0) and sender.count(':') % 2 == 0:
+                sender = sender.partition(':')[0] + sender.partition(':')[2].partition(':')[2]
+
+            key = ''
+            for character in sender:
+                if character.isalnum() or character == '_':
+                    name = key + character
+            key.casefold()
+
+            with contextlib.suppress(KeyError):
+                self.send_chat(self.list[key]['url'], parent)
+                self.record_data(key)
 
     def random_smiley(self, parent):
         if self.limit(parent):
