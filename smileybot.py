@@ -231,7 +231,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
         self.send_chat(message, parent)
 
 
-def main(room='test'):
+def main(room='srs'):
     bot = SmileBot(room)
     while bot.isAlive:
         euphoria.executable.start(bot)
