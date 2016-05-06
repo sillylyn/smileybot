@@ -40,16 +40,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
                 self.send_chat('~bad syntax puppies~ https://i.imgur.com/ieajOG4.jpg', m['id'])
                 self.send_chat('Error: Bad syntax.\nUsage: !add <name> <URL>', m['id'])
             else:
-                url = message.args[1]
-                if not url.startswith('http://') and not url.startswith('https://'):
-                    url = 'http://' + url
-
-                if self.imgur_verification(url, m['id']):
-                    self.add_smiley(message.args[0].casefold(), url, m['sender']['name'], parent=m['id'])
-                elif self.non_imgur_verification(url, m['id']):
-                    img = client.upload_from_url(url)
-                    self.add_smiley(message.args[0].casefold(), img['link'], m['sender']['name'], parent=m['id'],
-                                    deletehash=img['deletehash'])
+                self.add_smiley(message.args[0].casefold(), url, m['sender']['name'], parent=m['id'])
         elif message.command == 'remove':
             host = m['sender'].get('is_manager', False)
             if host:
@@ -116,9 +107,10 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
         if not key[0] == '!':
             key = '!' + key
         try:
-            self.send_chat('Info for smiley "' + key + '":\nImgur URL: "' + self.list[key]['url'] + '"\nUsage count: ' +
-                           self.list[key]['count'] + '\nAdded by: ' + self.list[key].get('user','') +
-                           '\nTime added (UTC): ' + self.list[key].get('date',''), parent)
+            self.send_chat('Info for smiley "' + key + '":\nOriginal URL: "' + self.list[key].get('url', '') +
+                           'Imgur URL: "' + self.list[key]['url'] + '"\nUsage count: ' + self.list[key]['count'] +
+                           '\nAdded by: ' + self.list[key].get('user','') + '\nTime added (UTC): ' +
+                           self.list[key].get('date',''), parent)
         except KeyError:
             self.send_chat('Error: Smiley name not in list. Please check that the name is correct.', parent)
 
@@ -153,11 +145,14 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
                                 'try again.'), parent)
                 return False
 
-    def add_smiley(self, key, url, user, parent=None, deletehash=None):
+    def add_smiley(self, key, url, user, parent=None):
         if key.startswith('"') or key.startswith('<'):
             key = key[1:-1]
         if not key[0] == '!':
             key = '!' + key
+
+        if not url.startswith('http://') and not url.startswith('https://'):
+            url = 'http://' + url
 
         #  verify some error conditions and reply to user
         if key in self.list:
@@ -174,23 +169,29 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
                                 'different name.'), parent)
                 return
 
-        self.list[key] = {'url':url, 'count': '0', 'user': user, 'date': str(datetime.datetime.utcnow()),
-                          'deletehash': deletehash}
-        self.write_list()
-        self.send_chat('New smiley "' + key + '" added.', parent)
+        if self.imgur_verification(url, parent):
+            self.list[key] = {'url': url, 'imgur_url': url, 'count': '0', 'user': user, 'date': str(datetime.datetime.utcnow()),
+                              'deletehash': None}
+            self.write_list()
+            self.send_chat('New smiley "' + key + '" added.', parent)
+        elif self.non_imgur_verification(url, parent):
+            img = client.upload_from_url(url)
+            self.list[key] = {'url': url, 'imgur_url': img['link'], 'count': '0', 'user': user,
+                              'date': str(datetime.datetime.utcnow()), 'deletehash': None}
 
     def remove_smiley(self, key, parent=None):
         if key.startswith('"') or key.startswith('<'):
             key = key[1:-1]
         if not key[0] == '!':
             key = '!' + key
-        try:
+        with contextlib.suppress(KeyError):
             if self.list[key]['deletehash'] is not None:
                 if client.delete_image(self.list[key]['deletehash']):
                     self.send_chat('Imgur image successfully deleted.', parent)
                 else:
                     self.send_chat('Error: Unable to delete Imgur image. Smiley data will not be removed.')
                     return
+        try:
             del self.list[key]
         except KeyError:
             self.send_chat('Error: Smiley name not in list. Please check that the name is correct.', parent)
