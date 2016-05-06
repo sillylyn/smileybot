@@ -1,9 +1,16 @@
 import euphoria
 import contextlib
-import urllib.error, urllib.request
+import urllib.parse, urllib.error, urllib.request
 import random
 import json
 import time, datetime
+import imgurpython, imgurpython.helpers.error
+
+with open('client') as clientinfo:
+    client_id = clientinfo.readline().rstrip('\n')
+    client_secret = clientinfo.readline().rstrip('\n')
+
+client = imgurpython.ImgurClient(client_id, client_secret)
 
 
 class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom):
@@ -33,7 +40,16 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
                 self.send_chat('~bad syntax puppies~ https://i.imgur.com/ieajOG4.jpg', m['id'])
                 self.send_chat('Error: Bad syntax.\nUsage: !add <name> <URL>', m['id'])
             else:
-                self.add_smiley(message.args[0].casefold(), message.args[1], m['sender']['name'], parent=m['id'])
+                url = message.args[1]
+                if not url.startswith('http://') and not url.startswith('https://'):
+                    url = 'http://' + url
+
+                if self.imgur_verification(url, m['id']):
+                    self.add_smiley(message.args[0].casefold(), url, m['sender']['name'], parent=m['id'])
+                elif self.non_imgur_verification(url, m['id']):
+                    img = client.upload_from_url(url)
+                    self.add_smiley(message.args[0].casefold(), img['link'], m['sender']['name'], parent=m['id'],
+                                    deletehash=img['deletehash'])
         elif message.command == 'remove':
             host = m['sender'].get('is_manager', False)
             if host:
@@ -106,7 +122,38 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
         except KeyError:
             self.send_chat('Error: Smiley name not in list. Please check that the name is correct.', parent)
 
-    def add_smiley(self, key, filename, user, parent=None):
+    def imgur_verification(self, url, parent=None):
+
+        if not 'imgur.com' in urllib.parse.urlparse(url).netloc:
+            return False
+
+        # Check url is accessible
+        try:
+            client.get_image(urllib.parse.urlparse(url).path.split('.')[0][1:])
+        except imgurpython.helpers.error.ImgurClientError:
+            self.send_chat('Error: Invalid URL. Please check that the URL is correct.', parent)
+            return False
+        else:
+            return True
+
+    def non_imgur_verification(self, url, parent=None):
+        try:
+            valid_link = urllib.request.urlopen(url).info().get_content_type().startswith('image')
+        except urllib.error.HTTPError:
+            self.send_chat('Error: Bad link. Please make sure you are using a valid link and try again.', parent)
+            return False
+        except urllib.error.URLError:
+            self.send_chat('Error: Invalid URL. Please check that the URL is correct.', parent)
+            return False
+        else:
+            if valid_link:
+                return True
+            else:
+                self.send_chat(('Error: Link provided is not an image. Please make sure you are using a valid link and '
+                                'try again.'), parent)
+                return False
+
+    def add_smiley(self, key, url, user, parent=None, deletehash=None):
         if key.startswith('"') or key.startswith('<'):
             key = key[1:-1]
         if not key[0] == '!':
@@ -116,9 +163,6 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
         if key in self.list:
             self.send_chat('Error: Name already in use. Please choose a different name.', parent)
             return
-        if 'i.imgur.com' not in filename:
-            self.send_chat('Error: Only direct links to i.imgur.com are permitted.', parent)
-            return
         if key in ('!', '!list', '!add', '!help', '!ping', '!uptime', '!pause', '!restore', '!restart', '!kill',
                    '!comic', '!remove', '!me_irl', '!meirl', '!discussion', '!conversation', '!random', '!info',
                    '!top'):
@@ -127,32 +171,13 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
         for character in key[1:]:
             if not (character.isalnum() or character == '_'):
                 self.send_chat(('Error: Numbers and special characters may not be used in names. Please choose a '
-                'different name.'), parent)
+                                'different name.'), parent)
                 return
 
-        # sanitize the filename if necessary
-        filename = filename.split('?')[0]
-        if filename.startswith('"') or filename.startswith("<"):
-            filename = filename[1:-1]
-        if not filename.startswith('http://') and not filename.startswith('https://'):
-            filename = 'http://' + filename
-
-        # Check url is accessible
-        try:
-            valid_link = urllib.request.urlopen(filename).info().get_content_type().startswith('image')
-        except urllib.error.HTTPError:
-            self.send_chat(('Error: Bad link. Please make sure you are using a valid i.imgur.com direct link '
-                            'and try again.'), parent)
-        except urllib.error.URLError:
-            self.send_chat('Error: Invalid URL. Please check that the URL is correct.', parent)
-        else:
-            if valid_link:
-                self.list[key] = {'url':filename, 'count': '0', 'user': user, 'date': str(datetime.datetime.utcnow())}
-                self.write_list()
-                self.send_chat('New smiley "' + key + '" added.', parent)
-            else:
-                self.send_chat(('Error: Link provided is not an image. Please make sure you are using'
-                                'a valid i.imgur.com direct link and try again.'), parent)
+        self.list[key] = {'url':url, 'count': '0', 'user': user, 'date': str(datetime.datetime.utcnow()),
+                          'deletehash': deletehash}
+        self.write_list()
+        self.send_chat('New smiley "' + key + '" added.', parent)
 
     def remove_smiley(self, key, parent=None):
         if key.startswith('"') or key.startswith('<'):
@@ -160,6 +185,12 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
         if not key[0] == '!':
             key = '!' + key
         try:
+            if self.list[key]['deletehash'] is not None:
+                if client.delete_image(self.list[key]['deletehash']):
+                    self.send_chat('Imgur image successfully deleted.', parent)
+                else:
+                    self.send_chat('Error: Unable to delete Imgur image. Smiley data will not be removed.')
+                    return
             del self.list[key]
         except KeyError:
             self.send_chat('Error: Smiley name not in list. Please check that the name is correct.', parent)
@@ -200,7 +231,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
         self.send_chat(message, parent)
 
 
-def main(room='srs'):
+def main(room='test'):
     bot = SmileBot(room)
     while bot.isAlive:
         euphoria.executable.start(bot)
