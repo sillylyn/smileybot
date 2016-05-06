@@ -40,7 +40,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
                 self.send_chat('~bad syntax puppies~ https://i.imgur.com/ieajOG4.jpg', m['id'])
                 self.send_chat('Error: Bad syntax.\nUsage: !add <name> <URL>', m['id'])
             else:
-                self.add_smiley(message.args[0].casefold(), url, m['sender']['name'], parent=m['id'])
+                self.add_smiley(message.args[0].casefold(), message.args[1], m['sender']['name'], parent=m['id'])
         elif message.command == 'remove':
             host = m['sender'].get('is_manager', False)
             if host:
