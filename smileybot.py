@@ -16,7 +16,7 @@ client = imgurpython.ImgurClient(client_id, client_secret)
 class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom):
     def __init__(self, room, passcode=None):
         super().__init__(room, passcode)
-        self.nickname = 'test\ntest'
+        self.nickname = 'SmileBot'
 
         self.times = []
         self.log = 5
