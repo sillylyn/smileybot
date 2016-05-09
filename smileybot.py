@@ -16,7 +16,7 @@ client = imgurpython.ImgurClient(client_id, client_secret)
 class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom):
     def __init__(self, room, passcode=None):
         super().__init__(room, passcode)
-        self.nickname = 'SmileBot'
+        self.nickname = 'test\ntest'
 
         self.times = []
         self.log = 5
@@ -170,14 +170,23 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
                 return
 
         if self.imgur_verification(url, parent):
-            self.list[key] = {'url': url, 'imgur_url': url, 'count': '0', 'user': user, 'date': str(datetime.datetime.utcnow()),
-                              'deletehash': None}
+            self.list[key] = {'url': url, 'imgur_url': url, 'count': '0', 'user': user,
+                              'date': str(datetime.datetime.utcnow()), 'deletehash': None}
             self.write_list()
             self.send_chat('New smiley "' + key + '" added.', parent)
         elif self.non_imgur_verification(url, parent):
-            img = client.upload_from_url(url)
-            self.list[key] = {'url': url, 'imgur_url': img['link'], 'count': '0', 'user': user,
-                              'date': str(datetime.datetime.utcnow()), 'deletehash': None}
+            if client.get_credits()['UserRemaining'] >= 10:
+                try:
+                    img = client.upload_from_url(url)
+                    self.list[key] = {'url': url, 'imgur_url': img['link'], 'count': '0', 'user': user,
+                                      'date': str(datetime.datetime.utcnow()), 'deletehash': None}
+                    self.write_list()
+                    self.send_chat('New smiley "' + key + '" added.', parent)
+                except imgurpython.helpers.error.ImgurClientRateLimitError:
+                    self.send_chat('Error: Imgur Rate Limit Error. Unable to add smiley.')
+            else:
+                self.send_chat('Not enough Imgur credits. Please reupload the image to Imgur yourself or try again '
+                               'tomorrow.')
 
     def remove_smiley(self, key, parent=None):
         if key.startswith('"') or key.startswith('<'):
