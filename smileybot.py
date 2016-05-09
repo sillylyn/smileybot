@@ -183,10 +183,10 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
                     self.write_list()
                     self.send_chat('New smiley "' + key + '" added.', parent)
                 except imgurpython.helpers.error.ImgurClientRateLimitError:
-                    self.send_chat('Error: Imgur Rate Limit Error. Unable to add smiley.')
+                    self.send_chat('Error: Imgur Rate Limit Error. Unable to add smiley.', parent)
             else:
                 self.send_chat('Not enough Imgur credits. Please reupload the image to Imgur yourself or try again '
-                               'tomorrow.')
+                               'tomorrow.', parent)
 
     def remove_smiley(self, key, parent=None):
         if key.startswith('"') or key.startswith('<'):
@@ -198,7 +198,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
                 if client.delete_image(self.list[key]['deletehash']):
                     self.send_chat('Imgur image successfully deleted.', parent)
                 else:
-                    self.send_chat('Error: Unable to delete Imgur image. Smiley data will not be removed.')
+                    self.send_chat('Error: Unable to delete Imgur image. Smiley data will not be removed.', parent)
                     return
         try:
             del self.list[key]
