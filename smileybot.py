@@ -57,8 +57,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
 
         # command: "!info --option <arg>
         elif message.command == 'info':
-            if len(message.args) == 1 and len(message.flags) == 1:
-                self.send_info(message.args[0].casefold(), m['id'], option=list(message.flags)[0][1:])
+            self.send_info(' '.join(message.args), m['id'], option=list(message.flags)[0][1:])
 
         # command: "!me_irl"
         elif (m['content'] == '!me_irl') or (m['content'] == '!meirl'):
@@ -107,12 +106,14 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
         self.send_chat('List of available smileys:\n' + msg[:-2], parent)
 
     def send_info(self, key, parent=None, option=None):
-        print(key, option)
         if option == 'image':
+            if ' ' in key:
+                return
             if key.startswith('"') or key.startswith('<'):
                 key = key[1:-1]
             if not key[0] == '!':
                 key = '!' + key
+            key = key.casefold()
             with contextlib.suppress(KeyError):
                 self.send_chat('Info for smiley "' + key + '":\nOriginal URL: "' + self.list[key].get('url', '') +
                                '"\nImgur URL: "' + self.list[key]['imgur_url'] + '"\nUsage count: ' +
