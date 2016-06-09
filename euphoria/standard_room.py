@@ -2,7 +2,6 @@ from . import chat_room
 from . import utils
 import time
 import datetime
-import contextlib
 
 
 class StandardRoom(chat_room.ChatRoom):
@@ -19,10 +18,6 @@ class StandardRoom(chat_room.ChatRoom):
     def handle_message(self, data):
         content = data['data']['content']
         reply = data['data']['id']
-
-
-        with contextlib.suppress(KeyError):
-            host = data['data']['sender']['is_manager']
 
         if self.isPaused:
             if content == '!restore @' + self.nickname:
@@ -58,8 +53,8 @@ class StandardRoom(chat_room.ChatRoom):
                 self.send_chat('/me is now restarting.', reply)
                 self.quit()
 
-            elif (content == '!kill @' + self.nickname):
-                if host:
+            elif content == '!kill @' + self.nickname:
+                if data['data']['sender'].get('host', False):
                     self.send_chat('/me is now exiting. RIP in peace.', reply)
                     self.isAlive = False
                     self.quit()
