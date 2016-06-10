@@ -5,6 +5,9 @@ import random
 import json
 import time, datetime
 import imgurpython, imgurpython.helpers.error
+import logging
+
+logging.basicConfig(level=logging.DEBUG, filename='smileybot.log')
 
 with open('client') as clientinfo:
     client_id = clientinfo.readline().rstrip('\n')
@@ -22,6 +25,8 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
         self.log = 5
         self.cooldown = 30
 
+        self.parent = None
+
         self.open_list()
 
         self.ping_text = 'Pong!'
@@ -33,6 +38,8 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
                           '\n!me_irl\n!random\n\nSpecial thanks to @Alexis for being awesome <3')
 
     def handle_chat(self, m):
+        self.parent = m['id']
+
         message = euphoria.command.Command(m['content'])
         message.parse()
 
@@ -259,10 +266,15 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
         self.send_chat(message, parent)
 
 
-def main(room='srs'):
+def main(room='test'):
     bot = SmileBot(room)
     while bot.isAlive:
-        euphoria.executable.start(bot)
+        try:
+            euphoria.executable.start(bot)
+        except:
+            logging.exception('')
+            bot.send_chat('An unknown error occurred.', bot.parent)
+
 
 if __name__ == '__main__':
     main()
