@@ -20,7 +20,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
 
         self.times = []
         self.log = 5
-        self.cooldown = 120
+        self.cooldown = 1000
 
         self.open_list()
 
@@ -116,7 +116,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
             key = key.casefold()
             with contextlib.suppress(KeyError):
                 self.send_chat('Info for smiley "' + key + '":\nOriginal URL: "' + self.list[key].get('url', '') +
-                               '"\nImgur URL: "' + self.list[key]['imgur_url'] + '"\nUsage count: ' +
+                               '"\nImgur URL: "' + self.list[key].get('imgur_url', '') + '"\nUsage count: ' +
                                self.list[key]['count'] + '\nAdded by: ' + self.list[key].get('user','') +
                                '\nTime added (UTC): ' + self.list[key].get('date',''), parent)
 
