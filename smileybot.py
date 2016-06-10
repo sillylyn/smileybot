@@ -20,7 +20,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
 
         self.times = []
         self.log = 5
-        self.cooldown = 1000
+        self.cooldown = 30
 
         self.open_list()
 
@@ -56,7 +56,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
                 self.send_chat('Error: "!remove" is a host-only command.', m['id'])
 
         # command: "!info --option <arg>
-        elif message.command == 'info':
+        elif message.command == 'info' and len(message.flags) == 1:
             self.send_info(' '.join(message.args), m['id'], option=list(message.flags)[0][1:])
 
         # command: "!me_irl"
@@ -127,10 +127,10 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
                     count += 1
             self.send_chat('User ' + key + ' has added ' + str(count) + ' images.', parent)
 
-        if option == 'list' and key == '@' + self.nickname.casefold():
+        if option == 'list' and key.casefold() == '@' + self.nickname.casefold():
             self.send_list(parent)
 
-        if option == 'top' and key == '@' + self.nickname.casefold():
+        if option == 'top' and key.casefold() == '@' + self.nickname.casefold():
             self.top_smileys(parent)
 
     def imgur_verification(self, url, parent=None):
