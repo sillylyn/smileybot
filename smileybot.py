@@ -96,7 +96,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
 
     def send_smiley(self, key, parent=None):
         if key in self.list and self.limit(parent):
-            self.send_chat(self.list[key]['imgur_url'].rstrip('?1'), parent)
+            self.send_chat(self.list[key].get('imgur_url', self.list[key]['url']).rstrip('?1'), parent)
             self.record_data(key)
 
     def send_list(self, parent=None):
@@ -259,7 +259,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
         self.send_chat(message, parent)
 
 
-def main(room='test'):
+def main(room='srs'):
     bot = SmileBot(room)
     while bot.isAlive:
         euphoria.executable.start(bot)
