@@ -7,7 +7,7 @@ import time, datetime
 import imgurpython, imgurpython.helpers.error
 import logging
 
-logging.basicConfig(level=logging.DEBUG, filename='smileybot.log')
+logging.basicConfig(level=logging.DEBUG, filename='/home/smileybot/smileybot.log')
 
 with open('/home/smileybot/client') as clientinfo:
     client_id = clientinfo.readline().rstrip('\n')
@@ -215,11 +215,11 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
                                'tomorrow.', parent)
 
     def remove_smiley(self, key, host, account, parent=None):
-        if host or (account == key['account']):
-            if key.startswith('"') or key.startswith('<'):
-                key = key[1:-1]
-            if not key[0] == '!':
-                key = '!' + key
+        if key.startswith('"') or key.startswith('<'):
+            key = key[1:-1]
+        if not key[0] == '!':
+            key = '!' + key
+        if host or (account == self.list[key].get('account', None)):
             if self.list[key].get('deletehash', False):
                 if client.delete_image(self.list[key]['deletehash']):
                     self.send_chat('Imgur image successfully deleted.', parent)
@@ -234,7 +234,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
                 self.write_list()
                 self.send_chat('Smiley "' + key + '" removed.', parent)
         else:
-            self.send_chat('Error: You are not authorized to remove this image.')
+            self.send_chat('Error: You are not authorized to remove this image.', parent)
 
     def me_irl(self, sender, parent=None):
         if self.limit(parent):
@@ -269,7 +269,7 @@ class SmileBot(euphoria.ping_room.PingRoom, euphoria.standard_room.StandardRoom)
         self.send_chat(message, parent)
 
 
-def main(room='test'):
+def main(room='srs'):
     bot = SmileBot(room)
     while bot.isAlive:
         try:
